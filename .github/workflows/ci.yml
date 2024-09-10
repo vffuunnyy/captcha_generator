@@ -30,7 +30,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           manylinux: auto
-          args: --release --out dist -m python/Cargo.toml
+          args: --release --out dist -m Cargo.toml
       - name: Install built wheel
         if: matrix.target == 'x86_64'
         run: |
@@ -39,7 +39,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
-          name: wheels
+          name: wheels-${{ matrix.target }}
           path: dist
 
   linux-cross:
@@ -57,7 +57,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           manylinux: auto
-          args: --release --out dist -m python/Cargo.toml
+          args: --release --out dist -m Cargo.toml
       - uses: uraimo/run-on-arch-action@v2.7.2
         if: matrix.target != 'ppc64'
         name: Install built wheel
@@ -75,7 +75,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
-          name: wheels
+          name: wheels-${{ matrix.target }}
           path: dist
 
 
