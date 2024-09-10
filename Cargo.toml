@@ -1,0 +1,19 @@
+[package]
+name = "captcha_generator"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "captcha_generator"
+crate-type = ["cdylib"]
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = "z"
+strip = "symbols"
+
+[dependencies]
+rand = "0.8.5"
+skia-safe = "0.78.0"
+pyo3 = "0.22.2"
