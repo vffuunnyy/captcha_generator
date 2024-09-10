@@ -1,17 +1,18 @@
+use image::imageops::overlay;
+use image::{ImageBuffer, ImageFormat, Rgba};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use skia_safe::surfaces::raster_n32_premul;
-use skia_safe::{Color, EncodedImageFormat, ISize, Image};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
+use std::io::Cursor;
 use std::path::PathBuf;
 
 #[pyclass]
 pub struct CaptchaGenerator {
-    emoji_map: HashMap<char, Image>,
+    emoji_map: HashMap<char, ImageBuffer<Rgba<u8>, Vec<u8>>>,
     emojis: Vec<char>,
 }
 
@@ -32,7 +33,7 @@ impl CaptchaGenerator {
     #[new]
     #[pyo3(signature = (emojis_path, format = None))]
     pub fn new(emojis_path: PathBuf, format: Option<&str>) -> Self {
-        let mut emoji_map: HashMap<char, Image> = HashMap::new();
+        let mut emoji_map: HashMap<char, ImageBuffer<Rgba<u8>, Vec<u8>>> = HashMap::new();
         let mut emojis: Vec<char> = Vec::new();
         let format = Some(OsStr::new(format.unwrap_or("png")));
 
@@ -42,8 +43,7 @@ impl CaptchaGenerator {
                 .filter_map(|entry| {
                     let path = entry.path();
                     if path.extension() == format {
-                        Image::from_encoded(skia_safe::Data::new_copy(&fs::read(&path).ok()?))
-                            .map(|img| (path, img))
+                        image::open(&path).ok().map(|img| (path, img))
                     } else {
                         None
                     }
@@ -56,7 +56,7 @@ impl CaptchaGenerator {
                         .map(|emoji_char| (emoji_char, image))
                 })
                 .for_each(|(emoji_char, image)| {
-                    emoji_map.insert(emoji_char, image);
+                    emoji_map.insert(emoji_char,  image.into_rgba8().clone());
                     emojis.push(emoji_char);
                 });
         }
@@ -95,34 +95,28 @@ impl CaptchaGenerator {
         let output_height = 180;
         let spacing = 20;
 
-        let mut surface = raster_n32_premul(ISize {
-            width: output_width,
-            height: output_height,
-        })
-        .unwrap();
-        let canvas = surface.canvas();
+        let mut output_image: ImageBuffer<Rgba<u8>, Vec<u8>> =
+            ImageBuffer::from_pixel(output_width, output_height, Rgba([255, 255, 255, 255]));
 
-        canvas.clear(Color::WHITE);
-
-        let total_image_width: i32 = selected_images.iter().map(|img| img.width()).sum();
+        let total_image_width: i32 = selected_images.iter().map(|img| img.width() as i32).sum();
         let total_spacing_width = spacing * (num_emojis - 1);
         let total_width_needed = total_image_width + total_spacing_width as i32;
 
-        let mut x_offset: i32 = (output_width - total_width_needed) / 2;
+        let mut x_offset: i32 = (output_width as i32 - total_width_needed) / 2;
         for img in selected_images {
             let y_offset = (output_height - img.height()) / 2;
-            canvas.draw_image(img, (x_offset as f32, y_offset as f32), None);
-            x_offset += img.width() + spacing as i32;
+            overlay(&mut output_image, img, x_offset as i64, y_offset as i64);
+            x_offset += img.width() as i32 + spacing as i32;
         }
 
-        let output_image = surface
-            .image_snapshot()
-            .encode_to_data(EncodedImageFormat::PNG)
+        let mut buf = Vec::new();
+        output_image
+            .write_to(&mut Cursor::new(&mut buf), ImageFormat::Png)
             .unwrap();
 
         Ok(CaptchaData {
             correct_emoji,
-            image: PyBytes::new_bound(py, &output_image.as_bytes()).into(),
+            image: PyBytes::new_bound(py, &buf).into(),
             image_emojis,
             keyboard_emojis,
         })

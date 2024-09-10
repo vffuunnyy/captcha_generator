@@ -15,5 +15,5 @@ strip = "symbols"
 
 [dependencies]
 rand = "0.8.5"
-skia-safe = "0.78.0"
+image = "0.25.2"
 pyo3 = "0.22.2"
