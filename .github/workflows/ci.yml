@@ -14,71 +14,6 @@ permissions:
   contents: write
 
 jobs:
-  linux:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [x86_64, i686]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.12
-          architecture: x64
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1.44.0
-        with:
-          target: ${{ matrix.target }}
-          manylinux: auto
-          args: --release --out dist -m Cargo.toml
-      - name: Install built wheel
-        if: matrix.target == 'x86_64'
-        run: |
-          pip install crfs --no-index --find-links dist --force-reinstall
-          python -c "import crfs"
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels-${{ matrix.target }}
-          path: dist
-
-  linux-cross:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [aarch64, armv7, s390x, ppc64le, ppc64]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.12
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1.44.0
-        with:
-          target: ${{ matrix.target }}
-          manylinux: auto
-          args: --release --out dist -m Cargo.toml
-      - uses: uraimo/run-on-arch-action@v2.7.2
-        if: matrix.target != 'ppc64'
-        name: Install built wheel
-        with:
-          arch: ${{ matrix.target }}
-          distro: ubuntu20.04
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          install: |
-            apt-get update
-            apt-get install -y --no-install-recommends python3 python3-pip
-            pip3 install -U pip
-          run: |
-            pip3 install crfs --no-index --find-links dist/ --force-reinstall
-            python3 -c "import crfs"
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels-${{ matrix.target }}
-          path: dist
-
-
   windows:
     runs-on: windows-latest
     strategy:
@@ -124,26 +59,30 @@ jobs:
           name: wheels-${{ matrix.target }}
           path: dist
 
-  # sdist:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Build sdist
-  #       uses: PyO3/maturin-action@v1.44.0
-  #       with:
-  #         command: sdist
-  #         args: --out dist
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: wheels-${{ matrix.target }}
-  #         path: dist
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1.44.0
+        with:
+          target: ${{ matrix.target }}
+          manylinux: auto
+          args: --release --out dist --find-interpreter
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-${{ matrix.target }}
+          path: dist
 
   release:
     name: >-
       Sign the Python 🐍 distribution 📦 with Sigstore
       and upload them to GitHub Release
-    needs: [linux-cross, linux, macos, windows]
+    needs: [linux]
     runs-on: ubuntu-latest
 
     permissions:
