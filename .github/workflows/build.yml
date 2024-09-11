@@ -181,7 +181,7 @@ jobs:
     name: >-
       Sign the Python 🐍 distribution 📦 with Sigstore
       and upload them to GitHub Release
-    needs: [linux, musllinux, windows, macos, sdist]
+    needs: [macos, sdist]  # [linux, musllinux, windows, macos, sdist]
     runs-on: ubuntu-latest
 
     permissions:
