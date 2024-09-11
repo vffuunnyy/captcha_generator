@@ -3,17 +3,12 @@
 #
 #    maturin generate-ci github
 #
-name: CI
 
+name: Build Release
 on:
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - '*'
-  pull_request:
-  workflow_dispatch:
+  release:
+    types:
+      - published
 
 permissions:
   contents: read
@@ -58,7 +53,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -101,7 +96,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
           manylinux: musllinux_1_2
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -129,7 +124,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -155,7 +150,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -199,14 +194,6 @@ jobs:
           inputs: >-
             ./dist/*/*.tar.gz
             ./dist/*/*.whl
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create
-          '${{ github.ref_name }}'
-          --repo '${{ github.repository }}'
-          --notes ""
       - name: Upload artifact signatures to GitHub Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
