@@ -199,5 +199,5 @@ jobs:
         run: >-
           gh release upload
           '${{ github.ref_name }}'
-          dist/**/*.whl
+          dist/*/**.whl
           --repo '${{ github.repository }}'
