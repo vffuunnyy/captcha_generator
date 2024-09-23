@@ -5,7 +5,7 @@
 ```python
 from pathlib import Path
 
-from captcha_generator import CaptchaGenerator
+from cap_gen import CaptchaGenerator
 
 
 emojis = Path("./emojis")
